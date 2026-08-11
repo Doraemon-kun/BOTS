@@ -20,7 +20,7 @@ from auto_register_manager import AutoRegistrationManager
 load_dotenv()
 
 class DKHPBot(commands.Bot):
-    """Discord Bot cho tự động hóa đ��ng ký học phần HCMUE"""
+    """Discord Bot cho tự động hóa đăng ký học phần HCMUE"""
     
     def __init__(self):
         intents = discord.Intents.default()
@@ -78,23 +78,23 @@ bot = DKHPBot()
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user} đã kết nối đ���n Discord!')
+    print(f'{bot.user} để kết nối đểến Discord!')
     print(f'Bot ID: {bot.user.id}')
 
-@bot.tree.command(name="login", description="Đăng nhập v��o hệ thống DKHP")
+@bot.tree.command(name="login", description="Đăng nhập vào hệ thống DKHP")
 async def login_command(interaction: discord.Interaction):
     """Lệnh đăng nhập"""
     async def on_login_submit(modal_interaction: discord.Interaction, username: str, password: str):
         await modal_interaction.response.defer(thinking=True)
         
         try:
-            # Đ��ng nhập
+            # Đăng nhập
             await bot.session_manager.login(modal_interaction.user.id, username, password)
             
-            # Lấy th��ng tin cần thiết
+            # Lấy thông tin cần thiết
             await load_user_data(modal_interaction.user.id)
             
-            # Hi���n thị dashboard
+            # Hiển thị dashboard
             await show_dashboard(modal_interaction)
             
         except Exception as e:
@@ -108,14 +108,14 @@ async def login_command(interaction: discord.Interaction):
     modal = LoginModal(on_login_submit)
     await interaction.response.send_modal(modal)
 
-@bot.tree.command(name="dashboard", description="Hi���n thị b���ng điều khiển")
+@bot.tree.command(name="dashboard", description="Hiển thị bảng điều khiển")
 async def dashboard_command(interaction: discord.Interaction):
-    """L���nh hiển thị dashboard"""
+    """Lệnh hiển thị dashboard"""
     session = bot.session_manager.get_session(interaction.user.id)
     
     if not session:
         await interaction.response.send_message(
-            "Bạn chưa đ��ng nhập. Vui lòng sử dụng /login để đăng nhập.",
+            "Bạn chưa đăng nhập. Vui lòng sử dụng /login để đăng nhập.",
             ephemeral=True
         )
         return
@@ -132,14 +132,14 @@ async def dashboard_command(interaction: discord.Interaction):
         await interaction.followup.send(f"Lỗi: {str(e)}", ephemeral=True)
 
 async def load_user_data(user_id: int):
-    """Load tất c��� d��� liệu cần thiết cho user"""
+    """Load tất cả dữ liệu cần thiết cho user"""
     token = bot.session_manager.get_token(user_id)
     
-    # B��ớc 2: Lấy m�� ngành
+    # Bước 2: Lấy mã ngành
     study_programs = await bot.api_client.get_study_programs(token)
     bot.session_manager.set_study_programs(user_id, study_programs)
     
-    # T��� động chọn nếu chỉ có 1 ngành
+    # Tự động chọn nếu chỉ có 1 ngành
     if len(study_programs) == 1:
         program_id = study_programs[0]['StudyProgramID']
         bot.session_manager.set_selected_program(user_id, program_id)
@@ -150,22 +150,22 @@ async def load_user_data(user_id: int):
         registration_info = await bot.api_client.get_registration_info(token, program_id)
         bot.session_manager.set_registration_info(user_id, registration_info)
         
-        # Bước 4: Lấy lớp đã ��ăng ký
+        # Bước 4: Lấy lớp để đăng ký
         rand_id = str(registration_info.get('RandID', ''))
         turn_id = str(registration_info.get('IdDot', ''))
         
         registered_classes = await bot.api_client.get_registered_classes(token, rand_id, turn_id)
         bot.response_cacher.set_registered_classes(user_id, registered_classes)
         
-        # Bư���c 5: Lấy các chức năng đăng ký
+        # Bước 5: Lấy các chức năng đăng ký
         study_types = await bot.api_client.get_study_types(token)
         bot.response_cacher.set_study_types(user_id, study_types)
         
-        # B��ớc 6: Load các môn h���c cho từng chức năng (background)
+        # Bước 6: Load các môn học cho từng chức năng (background)
         asyncio.create_task(load_available_courses(user_id, registration_info))
 
 async def load_available_courses(user_id: int, registration_info: Dict[str, Any]):
-    """Load các môn học có thể đăng ký (ch���y background)"""
+    """Load các môn học có thể đăng ký (chạy background)"""
     try:
         token = bot.session_manager.get_token(user_id)
         program_id = bot.session_manager.get_selected_program(user_id)
@@ -174,7 +174,7 @@ async def load_available_courses(user_id: int, registration_info: Dict[str, Any]
         year_study = registration_info.get('YearStudy', '')
         term_id = registration_info.get('TermID', '')
         
-        # Lấy các ch���c năng đư���c hiển th���
+        # Lấy các chức năng được hiển thị
         for func in study_types:
             if not func.get('HienThi', False):
                 continue
@@ -216,14 +216,14 @@ async def show_dashboard(interaction: discord.Interaction):
         on_auto_register=lambda i: handle_auto_register_view(i)
     )
     
-    # Gửi hoặc edit message
+    # Gọi hoặc edit message
     if interaction.response.is_done():
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     else:
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 async def handle_register_start(interaction: discord.Interaction):
-    """X��� lý khi b���t đầu đăng ký học phần"""
+    """Xử lý khi bắt đầu đăng ký học phần"""
     await interaction.response.defer()
     
     user_id = interaction.user.id
@@ -233,7 +233,7 @@ async def handle_register_start(interaction: discord.Interaction):
     study_types = bot.response_cacher.get_study_types(user_id)
     registration_info = bot.session_manager.get_registration_info(user_id)
     
-    # Filter ch��� các ch���c năng đư���c hi���n thị
+    # Filter chỉ cđểc chức năng được hiển thị
     available_functions = []
     for func in study_types:
         if not func.get('HienThi', False):
@@ -245,7 +245,7 @@ async def handle_register_start(interaction: discord.Interaction):
         
         available_functions.append(func)
     
-    # Hiển th��� select function
+    # Hiển thị select function
     embed = UIManager.create_function_selection_embed()
     view = FunctionSelectView(
         functions=available_functions,
@@ -262,7 +262,7 @@ async def handle_function_selected(interaction: discord.Interaction, function_id
     user_id = interaction.user.id
     bot.session_manager.update_activity(user_id)
     
-    # L���y thông tin chức n��ng
+    # Lấy thông tin chức năng
     study_types = bot.response_cacher.get_study_types(user_id)
     selected_function = next((f for f in study_types if f['ChucNangID'] == function_id), None)
     
@@ -273,14 +273,14 @@ async def handle_function_selected(interaction: discord.Interaction, function_id
     loai_hinh = selected_function['LoaiHinh']
     function_name = selected_function['TenChucNang']
     
-    # Lưu context
+    # Lđểu context
     bot.user_context[user_id] = {
         'function_id': function_id,
         'loai_hinh': loai_hinh,
         'function_name': function_name
     }
     
-    # Lấy danh sách môn h���c
+    # Lấy danh sách môn học
     available_courses = bot.response_cacher.get_available_courses(user_id, loai_hinh)
     
     if not available_courses:
@@ -296,7 +296,7 @@ async def handle_function_selected(interaction: discord.Interaction, function_id
         )
         bot.response_cacher.set_available_courses(user_id, loai_hinh, available_courses)
     
-    # Hiển th��� danh s��ch môn h���c
+    # Hiển thị danh sách môn học
     embed = UIManager.create_course_selection_embed(function_name, available_courses)
     view = CourseSelectView(
         courses=available_courses,
@@ -317,7 +317,7 @@ async def handle_course_selected(interaction: discord.Interaction, study_unit_id
     loai_hinh = context.get('loai_hinh', '')
     function_name = context.get('function_name', '')
     
-    # Lấy thông tin m��n học
+    # Lấy thông tin môn học
     available_courses = bot.response_cacher.get_available_courses(user_id, loai_hinh)
     course_name = ""
     course_id = ""
@@ -364,7 +364,7 @@ async def handle_course_selected(interaction: discord.Interaction, study_unit_id
     await interaction.edit_original_response(embed=embed, view=view)
 
 async def handle_class_selected(interaction: discord.Interaction, class_index: int):
-    """X��� lý khi chọn lớp để đăng ký"""
+    """Xử lý khi chọn lớp để đăng ký"""
     await interaction.response.defer()
     
     user_id = interaction.user.id
@@ -376,7 +376,7 @@ async def handle_class_selected(interaction: discord.Interaction, class_index: i
     schedule_units = context.get('schedule_units', [])
     
     if class_index >= len(schedule_units):
-        await interaction.followup.send("Lớp kh��ng hợp lệ.", ephemeral=True)
+        await interaction.followup.send("Lớp không hợp lệ.", ephemeral=True)
         return
     
     selected_class = schedule_units[class_index]
@@ -387,7 +387,7 @@ async def handle_class_selected(interaction: discord.Interaction, class_index: i
         registration_info = bot.session_manager.get_registration_info(user_id)
         turn_id = str(registration_info.get('IdDot', ''))
         
-        # Chuẩn bị data đ��� đăng ký
+        # Chuẩn bị data để đăng ký
         register_data = {
             'CurriculumID': selected_class.get('CurriculumID', ''),
             'ScheduleStudyUnitAlias': selected_class.get('ScheduleStudyUnitAlias', ''),
@@ -427,7 +427,7 @@ async def handle_class_selected(interaction: discord.Interaction, class_index: i
         
         await interaction.edit_original_response(embed=embed, view=None)
         
-        # Quay về dashboard sau 3 gi��y
+        # Quay về dashboard sau 3 giây
         await asyncio.sleep(3)
         await show_dashboard(interaction)
         
@@ -436,18 +436,18 @@ async def handle_class_selected(interaction: discord.Interaction, class_index: i
         await interaction.edit_original_response(embed=embed, view=None)
 
 async def handle_unregister_start(interaction: discord.Interaction):
-    """Xử lý khi bắt đầu hủy học phần"""
+    """Xử lý khi bđợt đầu hủy học phần"""
     await interaction.response.defer()
     
     user_id = interaction.user.id
     bot.session_manager.update_activity(user_id)
     
-    # Lấy danh sách lớp đã đăng ký
+    # Lấy danh sách lớp để đăng ký
     registered_classes_data = bot.response_cacher.get_registered_classes(user_id)
     rows = registered_classes_data.get('Rows', [])
     
     if not rows:
-        await interaction.followup.send("Bạn chưa đăng ký l���p nào.", ephemeral=True)
+        await interaction.followup.send("Bạn chưa đăng ký lớp nào.", ephemeral=True)
         return
     
     # Hiển thị danh sách
@@ -464,7 +464,7 @@ async def handle_unregister_start(interaction: discord.Interaction):
     await interaction.edit_original_response(embed=embed, view=view)
 
 async def handle_unregister_class(interaction: discord.Interaction, class_index: int):
-    """Xử lý khi chọn l���p để h���y"""
+    """Xử lý khi chọn lớp để hủy"""
     await interaction.response.defer()
     
     user_id = interaction.user.id
@@ -474,7 +474,7 @@ async def handle_unregister_class(interaction: discord.Interaction, class_index:
     rows = context.get('unregister_classes', [])
     
     if class_index >= len(rows):
-        await interaction.followup.send("Lớp kh��ng hợp lệ.", ephemeral=True)
+        await interaction.followup.send("Lớp khđểng hợp lệ.", ephemeral=True)
         return
     
     selected_class = rows[class_index]
@@ -485,13 +485,13 @@ async def handle_unregister_class(interaction: discord.Interaction, class_index:
         registration_info = bot.session_manager.get_registration_info(user_id)
         turn_id = str(registration_info.get('IdDot', ''))
         
-        # H���y lớp
+        # Hủy lớp
         result = await bot.api_client.remove_class(token, turn_id, program_id, selected_class)
         
         # Invalidate cache
         bot.response_cacher.invalidate_registered_classes(user_id)
         
-        # Hi���n th��� kết qu���
+        # Hiđển thị kết quả
         embed = UIManager.create_result_embed("Hủy học phần", result, success=True)
         await interaction.edit_original_response(embed=embed, view=None)
         
@@ -500,7 +500,7 @@ async def handle_unregister_class(interaction: discord.Interaction, class_index:
         await show_dashboard(interaction)
         
     except Exception as e:
-        embed = UIManager.create_result_embed("H���y học phần", f"L���i: {str(e)}", success=False)
+        embed = UIManager.create_result_embed("Hủy học phần", f"Lỗi: {str(e)}", success=False)
         await interaction.edit_original_response(embed=embed, view=None)
 
 async def handle_auto_register_view(interaction: discord.Interaction):
@@ -513,7 +513,7 @@ async def handle_auto_register_view(interaction: discord.Interaction):
     # Lấy danh sách lớp chờ đăng ký
     auto_classes = bot.session_manager.get_auto_register_classes(user_id)
     
-    # Hiển thị
+    # Hiđển thị
     embed = UIManager.create_auto_register_embed(auto_classes)
     view = AutoRegisterView(
         on_add=lambda i: handle_add_auto_class(i),
@@ -524,18 +524,18 @@ async def handle_auto_register_view(interaction: discord.Interaction):
     await interaction.edit_original_response(embed=embed, view=view)
 
 async def handle_add_auto_class(interaction: discord.Interaction):
-    """Xử lý thêm lớp t��� động đăng ký"""
+    """Xử lý thêm lớp tự động đăng ký"""
     async def on_submit(modal_interaction: discord.Interaction, curriculum_id: str, class_id: str):
         await modal_interaction.response.defer()
         
         user_id = modal_interaction.user.id
         
         # Thêm vào danh sách
-        # TODO: Validate và lấy loai_hinh
+        # TODO: Validate về lấy loai_hinh
         loai_hinh = "KH"  # Default
         bot.session_manager.add_auto_register_class(user_id, curriculum_id, class_id, loai_hinh)
         
-        # Start monitoring nếu chưa ch���y
+        # Start monitoring nếu chưa chạy
         if not bot.auto_register_manager.is_monitoring(user_id):
             await bot.auto_register_manager.start_monitoring(user_id)
         
@@ -546,12 +546,12 @@ async def handle_add_auto_class(interaction: discord.Interaction):
     await interaction.response.send_modal(modal)
 
 async def handle_remove_auto_class_start(interaction: discord.Interaction):
-    """X��� lý xóa l���p tự động đ��ng ký"""
+    """Xử lý xóa lớp tự động đăng ký"""
     # TODO: Implement remove logic similar to unregister
-    await interaction.response.send_message("Chức năng đang ph��t triển.", ephemeral=True)
+    await interaction.response.send_message("Chọc năng đang phát triển.", ephemeral=True)
 
 async def handle_back_to_dashboard(interaction: discord.Interaction):
-    """Quay v��� dashboard"""
+    """Quay về dashboard"""
     await interaction.response.defer()
     await show_dashboard(interaction)
 
@@ -559,6 +559,6 @@ async def handle_back_to_dashboard(interaction: discord.Interaction):
 if __name__ == "__main__":
     TOKEN = os.getenv('DISCORD_TOKEN')
     if not TOKEN:
-        print("Error: DISCORD_TOKEN không được tìm thấy trong file .env")
+        print("Error: DISCORD_TOKEN khđểng được tìm thấy trong file .env")
     else:
         bot.run(TOKEN)

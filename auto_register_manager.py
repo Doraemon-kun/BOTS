@@ -6,7 +6,7 @@ from session_manager import SessionManager
 from response_cacher import ResponseCacher
 
 class AutoRegistrationManager:
-    """Qu���n lý t��� động ��ăng ký h���c ph���n"""
+    """Quản lý tự động đăng ký học phần"""
     
     def __init__(self, api_client: DKHPAPIClient, session_manager: SessionManager, 
                  response_cacher: ResponseCacher):
@@ -17,7 +17,7 @@ class AutoRegistrationManager:
         self.status_callbacks: Dict[int, Callable] = {}
     
     def set_status_callback(self, user_id: int, callback: Callable):
-        """Đặt callback để thông báo status update"""
+        """đểặt callback để thông báo status update"""
         self.status_callbacks[user_id] = callback
     
     async def _notify_status(self, user_id: int, curriculum_id: str, class_id: str, status: str):
@@ -29,9 +29,9 @@ class AutoRegistrationManager:
                 pass
     
     async def start_monitoring(self, user_id: int):
-        """Bắt đ���u theo dõi và tự động đăng ký cho user"""
+        """Bắt đầu theo dđểi và tự động đăng ký cho user"""
         if user_id in self.running_tasks:
-            return  # Đ�� ch���y rồi
+            return  # Đã chạy rồi
         
         task = asyncio.create_task(self._monitor_loop(user_id))
         self.running_tasks[user_id] = task
@@ -47,15 +47,15 @@ class AutoRegistrationManager:
             del self.running_tasks[user_id]
     
     async def _monitor_loop(self, user_id: int):
-        """Vòng lặp theo dõi và tự động đăng ký"""
+        """Vòng lặp theo dđểi và tự động đăng ký"""
         while True:
             try:
-                await asyncio.sleep(15)  # Check m���i 15 gi��y
+                await asyncio.sleep(15)  # Check mỗi 15 giây
                 
-                # Kiểm tra session còn t���n tại không
+                # Kiểm tra session còn tồn tại không
                 session = self.session_manager.get_session(user_id)
                 if not session:
-                    # Thử khôi phục từ credentials
+                    # Thử khđểi phục từ credentials
                     restored = await self.session_manager.restore_session_from_credentials(user_id)
                     if not restored:
                         break
@@ -81,14 +81,14 @@ class AutoRegistrationManager:
                 year_study = registration_info.get('YearStudy', '')
                 term_id = registration_info.get('TermID', '')
                 
-                # Ki���m tra từng l���p
-                for auto_class in auto_classes[:]:  # Copy list đ��� có thể modify
+                # Kiểm tra từng lớp
+                for auto_class in auto_classes[:]:  # Copy list để có thể modify
                     curriculum_id = auto_class['curriculum_id']
                     class_id = auto_class['class_id']
                     loai_hinh = auto_class['loai_hinh']
                     
                     try:
-                        # Kiểm tra xem môn h���c có tồn tại không (cache 5 ph��t)
+                        # Kiểm tra xem môn học có tồn tại không (cache 5 phút)
                         available_courses = self.response_cacher.get_available_courses(user_id, loai_hinh)
                         
                         if not available_courses or self.response_cacher.is_expired(user_id, 'available_courses', loai_hinh):
@@ -98,7 +98,7 @@ class AutoRegistrationManager:
                             )
                             self.response_cacher.set_available_courses(user_id, loai_hinh, available_courses)
                         
-                        # Tìm study_unit_id từ curriculum_id
+                        # Tđểm study_unit_id từ curriculum_id
                         study_unit_id = None
                         for group in available_courses:
                             for class_study_unit in group.get('classStudyUnits', []):
@@ -112,11 +112,11 @@ class AutoRegistrationManager:
                                 break
                         
                         if not study_unit_id:
-                            # Môn không tồn t���i
-                            await self._notify_status(user_id, curriculum_id, class_id, "Lớp không tồn tại")
+                            # Môn khđểng tồn tại
+                            await self._notify_status(user_id, curriculum_id, class_id, "Lớp khđểng tồn tại")
                             continue
                         
-                        # L���y thông tin l���p học ph���n (cache 15 gi��y)
+                        # Lấy thông tin lớp học phần (cache 15 giây)
                         schedule_units = self.response_cacher.get_schedule_units(user_id, study_unit_id, loai_hinh)
                         
                         if not schedule_units or self.response_cacher.is_expired(user_id, 'schedule_units', study_unit_id, loai_hinh):
@@ -126,7 +126,7 @@ class AutoRegistrationManager:
                             )
                             self.response_cacher.set_schedule_units(user_id, study_unit_id, loai_hinh, schedule_units)
                         
-                        # Tìm lớp c��� thể
+                        # Tìm lớp cụ thể
                         target_class = None
                         for unit in schedule_units:
                             unit_class_id = unit.get('ScheduleStudyUnitAlias', unit.get('CurriculumID', ''))
@@ -136,29 +136,29 @@ class AutoRegistrationManager:
                         
                         if not target_class:
                             # Lớp không tồn tại
-                            await self._notify_status(user_id, curriculum_id, class_id, "Lớp không tồn tại")
+                            await self._notify_status(user_id, curriculum_id, class_id, "Lđểp không tồn tại")
                             continue
                         
-                        # Kiểm tra xem đã đăng ký chưa
+                        # Kiểm tra xem để đăng ký chưa
                         if target_class.get('IsRegisted', False):
-                            # Đ�� đăng ký rồi, xóa khỏi danh sách
+                            # Đã đăng ký rồi, xóa khỏi danh sách
                             self.session_manager.remove_auto_register_class(user_id, curriculum_id, class_id)
                             await self._notify_status(user_id, curriculum_id, class_id, "Đã đăng ký thành công")
                             continue
                         
-                        # Kiểm tra còn chỗ không
+                        # Kiểm tra cần chỗ không
                         num_empty = int(target_class.get('NumberRegistOfEmpty', '0'))
                         
                         if num_empty > 0:
-                            # Còn chỗ, th��� đăng ký
-                            # Chu���n bị data để đăng ký
+                            # Cđển chỗ, thử đăng ký
+                            # Chuẩn bị data để đăng ký
                             register_data = {
                                 'CurriculumID': target_class.get('CurriculumID', class_id),
                                 'ScheduleStudyUnitAlias': target_class.get('ScheduleStudyUnitAlias', class_id),
                                 'ScheduleStudyUnitID': target_class.get('ScheduleStudyUnitID', class_id),
                                 'CurriculumName': target_class.get('CurriculumName', ''),
                                 'StudyUnitID': study_unit_id,
-                                'TypeName': target_class.get('TypeName', 'Lý thuyết'),
+                                'TypeName': target_class.get('TypeName', 'Lđể thuyết'),
                                 'Credits': target_class.get('Credits', 0),
                                 'StudentQuotas': target_class.get('StudentQuotas', ''),
                                 'StudyUnitTypeID': target_class.get('StudyUnitTypeID', 1),
@@ -179,7 +179,7 @@ class AutoRegistrationManager:
                                 'isOpenChilrentTask': False
                             }
                             
-                            # Kiểm tra xem môn này đã đăng k�� lớp khác chưa
+                            # Kiểm tra xem môn này để đăng ký lớp khác chưa
                             registered_classes_data = self.response_cacher.get_registered_classes(user_id)
                             if registered_classes_data:
                                 rows = registered_classes_data.get('Rows', [])
@@ -192,7 +192,7 @@ class AutoRegistrationManager:
                                         old_class = row
                                         break
                                 
-                                # Nếu đã ��ăng ký lớp khác của cùng môn, hủy trước
+                                # Nếu để đăng ký lớp khác của cùng môn, hủy trước
                                 if old_class:
                                     try:
                                         await self.api_client.remove_class(token, turn_id, study_program_id, old_class)
@@ -200,9 +200,9 @@ class AutoRegistrationManager:
                                         self.response_cacher.invalidate_registered_classes(user_id)
                                     except Exception as e:
                                         print(f"Failed to remove old class: {e}")
-                                        # Ti���p tục thử đăng ký
+                                        # Tiếp tục thử đăng ký
                             
-                            # Đăng k�� lớp mới
+                            # Đăng ký lớp mới
                             try:
                                 result = await self.api_client.register_class(
                                     token, turn_id, study_program_id, loai_hinh, register_data
@@ -217,12 +217,12 @@ class AutoRegistrationManager:
                                 error_msg = str(e)
                                 await self._notify_status(user_id, curriculum_id, class_id, f"Lỗi: {error_msg}")
                         else:
-                            # Hết chỗ, tiếp t���c chờ
+                            # Hết chỗ, tiđểp tục chờ
                             await self._notify_status(user_id, curriculum_id, class_id, "")
                     
                     except Exception as e:
                         print(f"Error processing auto register for {curriculum_id}-{class_id}: {e}")
-                        await self._notify_status(user_id, curriculum_id, class_id, f"L���i: {str(e)}")
+                        await self._notify_status(user_id, curriculum_id, class_id, f"Lỗi: {str(e)}")
             
             except asyncio.CancelledError:
                 break
@@ -231,5 +231,5 @@ class AutoRegistrationManager:
                 await asyncio.sleep(15)
     
     def is_monitoring(self, user_id: int) -> bool:
-        """Ki���m tra có ��ang theo dõi user không"""
+        """Kiểm tra có đang theo dđểi user không"""
         return user_id in self.running_tasks

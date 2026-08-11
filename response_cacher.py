@@ -3,26 +3,26 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 
 class ResponseCacher:
-    """Qu���n lý cache các response từ API với th���i gian hết hạn"""
+    """Quản lý cache các response từ API với thời gian hết hạn"""
     
     def __init__(self):
         self.cache: Dict[str, Dict[str, Any]] = {}
         self._refresh_tasks: Dict[str, asyncio.Task] = {}
     
     def _get_key(self, user_id: int, cache_type: str, *args) -> str:
-        """T���o cache key"""
+        """Tạo cache key"""
         return f"{user_id}:{cache_type}:{':'.join(str(a) for a in args)}"
     
     def set(self, user_id: int, cache_type: str, data: Any, expiry_seconds: int, *args):
         """
-        L��u data vào cache với thời gian hết hạn
+        Lưu data vào cache với thời gian hết hạn
         
-        cache_type có th��� là:
-        - 'study_programs': Danh sách mã ngành (kh��ng hết h���n)
+        cache_type cụ thể là:
+        - 'study_programs': Danh sách mã ngành (không hết hạn)
         - 'registration_info': Thông tin đợt đăng ký (không hết hạn)
-        - 'registered_classes': Lớp đã đ��ng ký (hết hạn khi đăng ký/h���y)
+        - 'registered_classes': Lớp để đăng ký (hết hạn khi đăng ký/hủy)
         - 'study_types': Các chức năng đăng ký (không hết hạn)
-        - 'available_courses': Các môn mở đăng ký (hết h���n sau 5 phút)
+        - 'available_courses': Các môn mở đăng ký (hết hạn sau 5 phút)
         - 'schedule_units': Các lớp của một môn (hết hạn sau 15 giây)
         """
         key = self._get_key(user_id, cache_type, *args)
@@ -35,7 +35,7 @@ class ResponseCacher:
         }
     
     def get(self, user_id: int, cache_type: str, *args) -> Optional[Any]:
-        """Lấy data từ cache, trả None n���u hết hạn hoặc không tồn t���i"""
+        """Lấy data từ cache, trả None nếu hết hạn hoặc không tồn tại"""
         key = self._get_key(user_id, cache_type, *args)
         
         if key not in self.cache:
@@ -43,7 +43,7 @@ class ResponseCacher:
         
         cached = self.cache[key]
         
-        # Kiểm tra hết hạn
+        # Kiểm tra hết hđển
         if cached['expires_at'] and datetime.now() >= cached['expires_at']:
             del self.cache[key]
             return None
@@ -51,7 +51,7 @@ class ResponseCacher:
         return cached['data']
     
     def is_expired(self, user_id: int, cache_type: str, *args) -> bool:
-        """Ki���m tra cache có hết hạn không"""
+        """Kiểm tra cache có hết hạn khđểng"""
         key = self._get_key(user_id, cache_type, *args)
         
         if key not in self.cache:
@@ -70,14 +70,14 @@ class ResponseCacher:
             del self.cache[key]
     
     def invalidate_all(self, user_id: int):
-        """Xóa tất cả cache c���a user"""
+        """Xóa tất cả cache của user"""
         keys_to_delete = [k for k in self.cache.keys() if k.startswith(f"{user_id}:")]
         for key in keys_to_delete:
             del self.cache[key]
     
     def get_expiring_caches(self, user_id: int) -> List[tuple]:
         """
-        Lấy danh s��ch các cache sắp hết hạn trong 5 giây t���i
+        Lấy danh sách các cache sắp hết hđển trong 5 giây tới
         Returns: List of (cache_type, args)
         """
         expiring = []
@@ -97,15 +97,15 @@ class ResponseCacher:
         return expiring
     
     def set_registered_classes(self, user_id: int, data: Any):
-        """Cache lớp đã đ��ng ký (hết hạn khi đăng ký/hủy)"""
-        self.set(user_id, 'registered_classes', data, -1)  # -1 = không tự ��ộng hết hạn
+        """Cache lớp để đăng ký (hết hạn khi đểăng kỳ/hủy)"""
+        self.set(user_id, 'registered_classes', data, -1)  # -1 = khđểng tự động hết hạn
     
     def get_registered_classes(self, user_id: int) -> Optional[Any]:
-        """Lấy danh sách lớp đ�� đăng ký"""
+        """Lấy danh sách lớp để đăng ký"""
         return self.get(user_id, 'registered_classes')
     
     def invalidate_registered_classes(self, user_id: int):
-        """Xóa cache lớp đã đ��ng ký (sau khi đăng ký hoặc hủy)"""
+        """Xóa cache lớp để đăng ký (sau khi đăng ký hoặc hủy)"""
         self.invalidate(user_id, 'registered_classes')
     
     def set_study_types(self, user_id: int, data: Any):
@@ -117,23 +117,23 @@ class ResponseCacher:
         return self.get(user_id, 'study_types')
     
     def set_available_courses(self, user_id: int, loai_hinh: str, data: Any):
-        """Cache danh sách môn m��� đăng ký (hết hạn sau 5 phút)"""
+        """Cache danh sách môn mđể đăng ký (hết hạn sau 5 phút)"""
         self.set(user_id, 'available_courses', data, 300, loai_hinh)
     
     def get_available_courses(self, user_id: int, loai_hinh: str) -> Optional[Any]:
-        """L���y danh sách m��n mở đăng ký"""
+        """Lấy danh sách môn mđể đăng ký"""
         return self.get(user_id, 'available_courses', loai_hinh)
     
     def set_schedule_units(self, user_id: int, study_unit_id: str, loai_hinh: str, data: Any):
-        """Cache danh sách lớp của một môn (hết hạn sau 15 gi��y)"""
+        """Cache danh sách lớp của một môn (hết hạn sau 15 giây)"""
         self.set(user_id, 'schedule_units', data, 15, study_unit_id, loai_hinh)
     
     def get_schedule_units(self, user_id: int, study_unit_id: str, loai_hinh: str) -> Optional[Any]:
-        """Lấy danh sách lớp của một môn"""
+        """Lấy danh sách lớp của mđợt môn"""
         return self.get(user_id, 'schedule_units', study_unit_id, loai_hinh)
     
     def get_all_cached_schedule_units(self, user_id: int) -> Dict[tuple, Any]:
-        """L���y tất cả cache schedule_units của user"""
+        """Lấy tất cả cache schedule_units của user"""
         result = {}
         prefix = f"{user_id}:schedule_units:"
         

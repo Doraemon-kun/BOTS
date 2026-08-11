@@ -5,12 +5,12 @@ from datetime import datetime
 import re
 
 def clean_name(name: str) -> str:
-    """Loại bỏ dấu cách th���a trong tên"""
+    """Lođểi bđể dấu cách thừa trong tên"""
     return re.sub(r'\s+', ' ', name).strip()
 
 def parse_schedules(schedules_html: str) -> str:
     """Parse HTML schedules thành text dễ đọc"""
-    # Loại bỏ HTML tags
+    # Lođểi bỏ HTML tags
     schedules = schedules_html.replace('<br/>', '\n').replace('<br>', '\n')
     schedules = re.sub(r'<[^>]+>', '', schedules)
     return schedules.strip()
@@ -33,17 +33,17 @@ class UIManager:
     @staticmethod
     def create_dashboard_embed(session: Dict[str, Any], registered_classes: Dict[str, Any], 
                                registration_info: Dict[str, Any]) -> discord.Embed:
-        """T���o embed cho dashboard chính"""
+        """Tạo embed cho dashboard chính"""
         embed = discord.Embed(
-            title="Bảng điều khiển Đăng ký h���c ph���n",
+            title="Bạng điều khiển Đăng ký học phần",
             color=discord.Color.blue()
         )
         
         # Lời chào
         full_name = clean_name(session['full_name'])
-        embed.add_field(name="", value=f"Xin ch��o, **{full_name}**", inline=False)
+        embed.add_field(name="", value=f"Xin chào, **{full_name}**", inline=False)
         
-        # Th��ng tin học kỳ
+        # Thông tin học kỳ
         year_study = registration_info.get('YearStudy', 'N/A')
         term_id = registration_info.get('TermID', 'N/A')
         begin_date = format_date(registration_info.get('BeginDate', ''))
@@ -56,23 +56,23 @@ class UIManager:
             inline=False
         )
         
-        # Thông tin ��ăng k��
+        # Thông tin đăng ký
         rows = registered_classes.get('Rows', [])
         total_classes = len(rows)
         total_credits = sum(c.get('Credits', 0) for c in rows)
         
         embed.add_field(
-            name="Thông tin Đăng ký",
-            value=f"**S��� học phần đã đăng ký:** {total_classes}\n**T���ng tín ch���:** {total_credits}",
+            name="Thông tin đăng ký",
+            value=f"**Số học phần để đăng ký:** {total_classes}\n**Tổng tín chỉ:** {total_credits}",
             inline=False
         )
         
-        # Chi tiết lớp đã đăng ký
+        # Chi tiết lớp đểã đăng ký
         if rows:
             classes_text = ""
             conflict_classes = []
             
-            for row in rows[:10]:  # Giới hạn 10 l���p để không vượt qu�� giới h���n embed
+            for row in rows[:10]:  # Giới hạn 10 lớp để không vượt quá giới hạn embed
                 curriculum_name = clean_name(row.get('CurriculumName', 'N/A'))
                 class_id = row.get('ScheduleStudyUnitAlias', 'N/A')
                 professor = clean_name(row.get('ProfessorName', 'N/A'))
@@ -88,21 +88,21 @@ class UIManager:
                 classes_text += f"\n... và {len(rows) - 10} lớp khác"
             
             embed.add_field(
-                name="Chi ti���t l���p h���c phần đã đăng k��",
+                name="Chi tiết lớp học phần đểã đăng ký",
                 value=classes_text or "Chưa có lớp nào",
                 inline=False
             )
             
-            # Cảnh báo tr��ng l���ch
+            # Cảnh báo trùng lịch
             if conflict_classes:
                 embed.add_field(
-                    name="⚠️ CẢNH BÁO TRÙNG L���CH",
-                    value="CÓ CÁC LỚP SAU B��� ĐĂNG KÝ TRÙNG L���CH. VUI LÒNG KIỂM TRA LẠI TRÊN WEB DKHP:\n" +
+                    name="⚠️ CẢNH BđểO TRÙNG LỊCH",
+                    value="CÓ CÁC LỚP SAU BỊ ĐĂNG Kđể TRÙNG LỊCH. VUI LÒNG KIỂM TRA LẠI TRÊN WEB DKHP:\n" +
                           "\n".join(f"• {c}" for c in conflict_classes),
                     inline=False
                 )
         
-        # Footer với thông tin sinh vi��n
+        # Footer với thông tin sinh viên
         embed.set_footer(text=f"{full_name} - {session['student_id']}")
         embed.timestamp = datetime.now()
         
@@ -112,8 +112,8 @@ class UIManager:
     def create_function_selection_embed() -> discord.Embed:
         """Tạo embed cho chọn chức năng"""
         embed = discord.Embed(
-            title="Bảng đi���u khiển Đăng ký học phần",
-            description="**Đăng ký học ph���n**\n\nVui lòng chọn chức năng:",
+            title="Bảng điều khiển Đăng ký học phần",
+            description="**Đăng ký học phần**\n\nVui lòng chọn chức năng:",
             color=discord.Color.green()
         )
         return embed
@@ -122,8 +122,8 @@ class UIManager:
     def create_course_selection_embed(function_name: str, available_courses: List[Dict[str, Any]]) -> discord.Embed:
         """Tạo embed cho chọn học phần"""
         embed = discord.Embed(
-            title="Bảng điều khiển Đăng ký h���c phần",
-            description=f"**Đăng ký học phần ({function_name})**\n\n**Các học phần mở ��ăng ký:**",
+            title="Bạng điều khiển đăng ký học phần",
+            description=f"**Đăng kỳ học phần ({function_name})**\n\n**Các học phần mở đăng ký:**",
             color=discord.Color.green()
         )
         
@@ -175,8 +175,8 @@ class UIManager:
                                      schedule_units: List[Dict[str, Any]]) -> discord.Embed:
         """Tạo embed cho chọn lớp"""
         embed = discord.Embed(
-            title="Bảng điều khi���n Đăng ký học phần",
-            description=f"**Đăng ký h���c ph���n ({function_name})**\n\n**Môn:** {course_name} - {course_id}",
+            title="Bảng điều khiđển Đăng ký học phần",
+            description=f"**Đăng kỳ học phần ({function_name})**\n\n**Môn:** {course_name} - {course_id}",
             color=discord.Color.green()
         )
         
@@ -198,7 +198,7 @@ class UIManager:
             except:
                 max_quota = num_students
             
-            status = "��� Đã đăng ký" if is_registered else f"({num_students}/{max_quota}, trống {num_empty})"
+            status = "✅ Đã đăng ký" if is_registered else f"({num_students}/{max_quota}, trống {num_empty})"
             
             classes_text += f"**{idx}. {class_id}:** {status} - {professor}\n"
             
@@ -229,7 +229,7 @@ class UIManager:
                 parts.append(current_part)
             
             for i, part in enumerate(parts):
-                field_name = "Danh sách lớp" if i == 0 else "Danh sách lớp (ti���p)"
+                field_name = "Danh sách lớp" if i == 0 else "Danh sách lớp (tiếp)"
                 embed.add_field(name=field_name, value=part, inline=False)
         else:
             embed.add_field(name="Danh sách lớp", value=classes_text, inline=False)
@@ -240,8 +240,8 @@ class UIManager:
     def create_unregister_embed(registered_classes: List[Dict[str, Any]]) -> discord.Embed:
         """Tạo embed cho hủy học phần"""
         embed = discord.Embed(
-            title="Bảng điều khiển Đ��ng ký học phần",
-            description="**H���y học phần**\n\n**C��c lớp h���c phần đã đăng ký:**",
+            title="Bảng điều khiển Đăng ký học phần",
+            description="**Hđểy học phần**\n\n**Các lớp học phần để đăng ký:**",
             color=discord.Color.orange()
         )
         
@@ -261,10 +261,10 @@ class UIManager:
     
     @staticmethod
     def create_auto_register_embed(auto_classes: List[Dict[str, str]]) -> discord.Embed:
-        """Tạo embed cho t��� động đ��ng ký"""
+        """Tạo embed cho tự động đăng ký"""
         embed = discord.Embed(
-            title="Bảng đi���u khiển Đăng ký học ph���n",
-            description="**T��� đ���ng đ��ng ký học phần**",
+            title="Bạng điều khiển Đăng ký học phần",
+            description="**Tự động đăng ký học phần**",
             color=discord.Color.purple()
         )
         
@@ -278,18 +278,18 @@ class UIManager:
                 status_text = f" ({status})" if status else ""
                 classes_text += f"• {curriculum_id} - {class_id}{status_text}\n"
             
-            embed.add_field(name="Các lớp đang chờ đăng ký t��� động", value=classes_text, inline=False)
+            embed.add_field(name="Các lớp đang chờ đăng ký tự động", value=classes_text, inline=False)
         else:
-            embed.add_field(name="Các lớp đang chờ đăng ký t��� động", value="(Trống)", inline=False)
+            embed.add_field(name="Các lớp đang chờ đăng ký tự động", value="(Trống)", inline=False)
         
         return embed
     
     @staticmethod
     def create_result_embed(title: str, message: str, success: bool = True) -> discord.Embed:
-        """Tạo embed cho kết quả"""
+        """Tạo embed cho kỳt quả"""
         color = discord.Color.green() if success else discord.Color.red()
         embed = discord.Embed(
-            title=f"Bảng điều khiển Đăng ký học ph���n\n{title}",
+            title=f"Bảng điều khiđển Đăng ký học phần\n{title}",
             description=message,
             color=color
         )
@@ -297,7 +297,7 @@ class UIManager:
 
 
 class DashboardView(ui.View):
-    """View cho dashboard ch��nh"""
+    """View cho dashboard chính"""
     
     def __init__(self, on_register: Callable, on_unregister: Callable, on_auto_register: Callable):
         super().__init__(timeout=300)  # 5 phút timeout
@@ -305,11 +305,11 @@ class DashboardView(ui.View):
         self.on_unregister = on_unregister
         self.on_auto_register = on_auto_register
     
-    @ui.button(label="Đ��ng ký học phần", style=discord.ButtonStyle.green)
+    @ui.button(label="Đăng ký học phần", style=discord.ButtonStyle.green)
     async def register_button(self, interaction: discord.Interaction, button: ui.Button):
         await self.on_register(interaction)
     
-    @ui.button(label="Hủy h���c ph���n", style=discord.ButtonStyle.danger)
+    @ui.button(label="Hủy học phần", style=discord.ButtonStyle.danger)
     async def unregister_button(self, interaction: discord.Interaction, button: ui.Button):
         await self.on_unregister(interaction)
     
@@ -325,13 +325,13 @@ class BackButton(ui.View):
         super().__init__(timeout=300)
         self.on_back = on_back
     
-    @ui.button(label="��� Quay về Dashboard", style=discord.ButtonStyle.gray)
+    @ui.button(label="◀ Quay về Dashboard", style=discord.ButtonStyle.gray)
     async def back_button(self, interaction: discord.Interaction, button: ui.Button):
         await self.on_back(interaction)
 
 
 class FunctionSelectView(ui.View):
-    """View cho chọn chức năng ��ăng ký"""
+    """View cho chọn chức năng đăng ký"""
     
     def __init__(self, functions: List[Dict[str, Any]], on_select: Callable, on_back: Callable):
         super().__init__(timeout=300)
@@ -345,12 +345,12 @@ class FunctionSelectView(ui.View):
             value = func.get('ChucNangID', '0')
             options.append(discord.SelectOption(label=label, value=value))
         
-        select = ui.Select(placeholder="Chọn ch���c năng...", options=options, custom_id="function_select")
+        select = ui.Select(placeholder="Chọn chức năng...", options=options, custom_id="function_select")
         select.callback = self._on_select
         self.add_item(select)
         
-        # N��t quay về
-        back_btn = ui.Button(label="��� Quay về Dashboard", style=discord.ButtonStyle.gray)
+        # Nút quay về
+        back_btn = ui.Button(label="◀ Quay về Dashboard", style=discord.ButtonStyle.gray)
         back_btn.callback = self.on_back
         self.add_item(back_btn)
     
@@ -360,14 +360,14 @@ class FunctionSelectView(ui.View):
 
 
 class CourseSelectView(ui.View):
-    """View cho ch���n học ph���n"""
+    """View cho chọn học phần"""
     
     def __init__(self, courses: List[Dict[str, Any]], on_select: Callable, on_back: Callable):
         super().__init__(timeout=300)
         self.on_select = on_select
         self.on_back = on_back
         
-        # T���o select menu (giới hạn 25 options)
+        # Tạo select menu (giới hạn 25 options)
         options = []
         for group in courses:
             for class_study_unit in group.get('classStudyUnits', []):
@@ -390,7 +390,7 @@ class CourseSelectView(ui.View):
             self.add_item(select)
         
         # Nút quay về
-        back_btn = ui.Button(label="��� Quay về Dashboard", style=discord.ButtonStyle.gray)
+        back_btn = ui.Button(label="◀ Quay về Dashboard", style=discord.ButtonStyle.gray)
         back_btn.callback = self.on_back
         self.add_item(back_btn)
     
@@ -423,7 +423,7 @@ class ClassSelectView(ui.View):
             self.add_item(select)
         
         # Nút quay về
-        back_btn = ui.Button(label="��� Quay về Dashboard", style=discord.ButtonStyle.gray)
+        back_btn = ui.Button(label="để Quay về Dashboard", style=discord.ButtonStyle.gray)
         back_btn.callback = self.on_back
         self.add_item(back_btn)
     
@@ -433,7 +433,7 @@ class ClassSelectView(ui.View):
 
 
 class AutoRegisterView(ui.View):
-    """View cho tự động đăng ký"""
+    """View cho tự đểng đăng ký"""
     
     def __init__(self, on_add: Callable, on_remove: Callable, on_back: Callable):
         super().__init__(timeout=300)
@@ -441,7 +441,7 @@ class AutoRegisterView(ui.View):
         self.on_remove = on_remove
         self.on_back = on_back
     
-    @ui.button(label="��� Thêm lớp", style=discord.ButtonStyle.green)
+    @ui.button(label="➕ Thêm lớp", style=discord.ButtonStyle.green)
     async def add_button(self, interaction: discord.Interaction, button: ui.Button):
         await self.on_add(interaction)
     
@@ -454,8 +454,8 @@ class AutoRegisterView(ui.View):
         await self.on_back(interaction)
 
 
-class AddAutoClassModal(ui.Modal, title="Thêm lớp tự ��ộng đăng ký"):
-    """Modal ��ể thêm l���p tự động đăng ký"""
+class AddAutoClassModal(ui.Modal, title="Thêm lớp tự đểng đăng ký"):
+    """Modal để thêm lớp tự động đểăng kỳ"""
     
     curriculum_id = ui.TextInput(
         label="Mã học phần",
@@ -464,7 +464,7 @@ class AddAutoClassModal(ui.Modal, title="Thêm lớp tự ��ộng đăng ký
     )
     
     class_id = ui.TextInput(
-        label="Mã l���p",
+        label="Mã lớp",
         placeholder="VD: 2611PHYS141702",
         required=True
     )
@@ -477,8 +477,8 @@ class AddAutoClassModal(ui.Modal, title="Thêm lớp tự ��ộng đăng ký
         await self._on_submit(interaction, str(self.curriculum_id), str(self.class_id))
 
 
-class LoginModal(ui.Modal, title="Đ��ng nhập hệ th���ng DKHP"):
-    """Modal đ��� đ��ng nhập"""
+class LoginModal(ui.Modal, title="Đđểng nhđểp hệ thống DKHP"):
+    """Modal để đăng nhập"""
     
     username = ui.TextInput(
         label="MSSV",
@@ -487,7 +487,7 @@ class LoginModal(ui.Modal, title="Đ��ng nhập hệ th���ng DKHP"):
     )
     
     password = ui.TextInput(
-        label="Mật kh���u web Online",
+        label="Mật khẩu web Online",
         style=discord.TextStyle.short,
         required=True
     )

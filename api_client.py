@@ -1,9 +1,10 @@
 import aiohttp
-import json
+import ssl
+import os
 from typing import Dict, Any, Optional, List
 
 class DKHPAPIClient:
-    """Client để giao tiếp v���i hệ thống đăng ký học phần HCMUE"""
+    """Client để giao tiếp với hệ thống đăng ký học phần HCMUE"""
     
     BASE_URL = "https://dkhpapi.hcmue.edu.vn/api"
     
@@ -11,11 +12,21 @@ class DKHPAPIClient:
         self.api_key = api_key
         self.client_id = client_id
         self.session: Optional[aiohttp.ClientSession] = None
+        
+        # Tạo SSL context với intermediate certificate
+        self.ssl_context = ssl.create_default_context()
+        
+        # Load intermediate certificate
+        cert_path = os.path.join(os.path.dirname(__file__), 'certificates.pem')
+        if os.path.exists(cert_path):
+            self.ssl_context.load_verify_locations(cert_path)
     
     async def _ensure_session(self):
-        """Đ���m bảo session đư���c tạo"""
+        """Đảm bảo session được tạo"""
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
+            # Tạo connector với SSL context
+            connector = aiohttp.TCPConnector(ssl=self.ssl_context)
+            self.session = aiohttp.ClientSession(connector=connector)
     
     async def close(self):
         """Đóng session"""
@@ -58,7 +69,7 @@ class DKHPAPIClient:
                 return await response.json()
             else:
                 text = await response.text()
-                raise Exception(f"Đăng nh���p th���t bại: {text}")
+                raise Exception(f"Đăng nhập thất bại: {text}")
     
     async def get_study_programs(self, token: str) -> List[Dict[str, Any]]:
         """
@@ -75,7 +86,7 @@ class DKHPAPIClient:
                 return await response.json()
             else:
                 text = await response.text()
-                raise Exception(f"L���y mã ngành thất b���i: {text}")
+                raise Exception(f"Lấy mở ngành thất bại: {text}")
     
     async def get_registration_info(self, token: str, study_program_id: str) -> Dict[str, Any]:
         """
@@ -97,7 +108,7 @@ class DKHPAPIClient:
     
     async def get_registered_classes(self, token: str, rand_id: str, turn_id: str) -> Dict[str, Any]:
         """
-        Bước 4: Tra cứu thông tin lớp học phần đ�� đăng ký
+        Bước 4: Tra cứu thông tin lớp học phần đểã đăng ký
         Returns: {"Rows": [...], "Reval": ""}
         """
         await self._ensure_session()
@@ -114,11 +125,11 @@ class DKHPAPIClient:
                 return await response.json()
             else:
                 text = await response.text()
-                raise Exception(f"Lấy danh sách lớp đã đăng ký thất bại: {text}")
+                raise Exception(f"Lấy danh sách lớp để đăng ký thất bại: {text}")
     
     async def get_study_types(self, token: str) -> List[Dict[str, Any]]:
         """
-        Bước 5: Tra th��ng tin đăng ký của đ���t này
+        Bước 5: Tra thông tin đăng ký của đợt này
         Returns: [{"ChucNangID", "TenChucNang", "LoaiHinh", "MapID", "HienThi"}]
         """
         await self._ensure_session()
@@ -131,12 +142,12 @@ class DKHPAPIClient:
                 return await response.json()
             else:
                 text = await response.text()
-                raise Exception(f"Lấy danh sách chức n��ng th���t bại: {text}")
+                raise Exception(f"Lấy danh sách chức năng thất bại: {text}")
     
     async def get_available_courses(self, token: str, study_program_id: str, loai_hinh: str, 
                                    year_study: str, term_id: str) -> List[Dict[str, Any]]:
         """
-        Bư���c 6: Tra cứu thông tin học phần đư���c đăng k�� theo từng ChucNangID
+        Bước 6: Tra cứu thông tin học phần được đăng ký theo từng ChucNangID
         Returns: [{"CurriculumTypeGroupName", "classStudyUnits": [...]}]
         """
         await self._ensure_session()
@@ -156,12 +167,12 @@ class DKHPAPIClient:
                 return await response.json()
             else:
                 text = await response.text()
-                raise Exception(f"Lấy danh sách môn học thất b���i: {text}")
+                raise Exception(f"Lấy danh sách môn học thất bại: {text}")
     
     async def get_available_schedule_units(self, token: str, study_program_id: str, 
                                           loai_hinh: str, study_unit_id: str) -> List[Dict[str, Any]]:
         """
-        Bước 7: Tra cứu l���p học phần c��� thể cho một học phần
+        Bước 7: Tra cứu lớp học phần cụ thể cho một học phần
         Returns: [{"ScheduleStudyUnitID", "CurriculumName", "NumberOfStudents", ...}]
         """
         await self._ensure_session()
@@ -179,7 +190,7 @@ class DKHPAPIClient:
                 return await response.json()
             else:
                 text = await response.text()
-                raise Exception(f"Lấy danh sách l���p học ph���n th���t bại: {text}")
+                raise Exception(f"Lấy danh sách lớp học phần thất bại: {text}")
     
     async def register_class(self, token: str, turn_id: str, study_program_id: str, 
                             regist_type: str, class_data: Dict[str, Any]) -> str:
@@ -198,7 +209,7 @@ class DKHPAPIClient:
             "RegistType": regist_type
         }
         
-        # ��ảm bảo class_data là list
+        # Đảm bảo class_data là list
         data = [class_data] if isinstance(class_data, dict) else class_data
         
         async with self.session.post(url, headers=headers, params=params, json=data) as response:
@@ -206,12 +217,12 @@ class DKHPAPIClient:
             if response.status == 200:
                 return text
             else:
-                raise Exception(f"Đăng ký thất bại: {text}")
+                raise Exception(f"đăng ký thất bại: {text}")
     
     async def remove_class(self, token: str, turn_id: str, study_program_id: str, 
                           class_data: Dict[str, Any]) -> str:
         """
-        Bước 8: Hủy lớp học phần đã đăng ký
+        Bước 8: Hủy lớp học phần để đăng ký
         Returns: Success message or error
         """
         await self._ensure_session()

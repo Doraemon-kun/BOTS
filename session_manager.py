@@ -13,22 +13,22 @@ class SessionManager:
         self._cleanup_task = None
     
     def start_cleanup_task(self):
-        """Khởi động task để dọn dẹp sessions hết h���n"""
+        """Khởi động task để dọn dẹp sessions hết hạn"""
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.create_task(self._cleanup_expired_sessions())
     
     async def _cleanup_expired_sessions(self):
-        """Dọn dẹp sessions hết h���n định kỳ"""
+        """Dọn dẹp sessions hết hạn định kỳ"""
         while True:
             try:
-                await asyncio.sleep(60)  # Check mỗi ph��t
+                await asyncio.sleep(60)  # Check mỗi phết
                 now = datetime.now()
                 expired_users = []
                 
                 for user_id, session in self.sessions.items():
-                    # Session hết hạn sau 5 phút không ho���t động
+                    # Session hết hạn sau 5 phút khđểng hoạt động
                     if now - session.get('last_activity', now) > timedelta(minutes=5):
-                        # Nếu có môn chờ ��ăng ký tự động, giữ lại credentials
+                        # Nếu có môn chờ đăng ký tự động, giữ lđểi credentials
                         if session.get('auto_register_classes'):
                             if user_id not in self.auto_register_credentials:
                                 self.auto_register_credentials[user_id] = {
@@ -46,10 +46,10 @@ class SessionManager:
     
     async def login(self, user_id: int, username: str, password: str) -> Dict[str, Any]:
         """
-        Đăng nhập và tạo session mới
+        Đăng nhập về tạo session mới
         Returns: Login response data
         """
-        # Gọi API đăng nhập
+        # Gọi API đểng nhập
         auth_data = await self.api_client.authenticate(username, password)
         
         # Lưu session
@@ -58,7 +58,7 @@ class SessionManager:
             'username': username,
             'password': password,
             'student_id': auth_data['Id'],
-            'full_name': auth_data['FullName'].strip(),  # Loại bỏ dấu cách thừa
+            'full_name': auth_data['FullName'].strip(),  # Loại bđể dấu cách thừa
             'token': auth_data['Token'],
             'expire': datetime.fromisoformat(auth_data['Expire'].replace('+07:00', '')),
             'last_activity': datetime.now(),
@@ -71,11 +71,11 @@ class SessionManager:
         return auth_data
     
     def get_session(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """L���y session của user"""
+        """Lấy session của user"""
         return self.sessions.get(user_id)
     
     def update_activity(self, user_id: int):
-        """Cập nhật th���i gian ho���t đ���ng cuối"""
+        """Cập nhật thời gian hoạt động cuối"""
         if user_id in self.sessions:
             self.sessions[user_id]['last_activity'] = datetime.now()
     
@@ -88,7 +88,7 @@ class SessionManager:
         if not session:
             return False
         
-        # Kiểm tra token có h���t hạn kh��ng (refresh trước 1 phút)
+        # Kiểm tra token cđể hết hạn không (refresh trước 1 phút)
         if datetime.now() >= session['expire'] - timedelta(minutes=1):
             try:
                 # Re-authenticate
@@ -97,7 +97,7 @@ class SessionManager:
                     session['password']
                 )
                 
-                # Cập nh���t token mới
+                # Cập nhật token mới
                 session['token'] = auth_data['Token']
                 session['expire'] = datetime.fromisoformat(auth_data['Expire'].replace('+07:00', ''))
                 
@@ -124,17 +124,17 @@ class SessionManager:
             self.sessions[user_id]['selected_program'] = program_id
     
     def get_selected_program(self, user_id: int) -> Optional[str]:
-        """L���y mã ngành đã chọn"""
+        """Lấy mã ngành để chọn"""
         session = self.sessions.get(user_id)
         return session['selected_program'] if session else None
     
     def set_registration_info(self, user_id: int, info: Dict[str, Any]):
-        """Lưu thông tin đ��ng ký học phần"""
+        """Lưu thông tin đăng ký học phần"""
         if user_id in self.sessions:
             self.sessions[user_id]['registration_info'] = info
     
     def get_registration_info(self, user_id: int) -> Optional[Dict[str, Any]]:
-        """Lấy thông tin ��ăng ký học ph���n"""
+        """Lấy thông tin đăng ký học phần"""
         session = self.sessions.get(user_id)
         return session['registration_info'] if session else None
     
@@ -150,14 +150,14 @@ class SessionManager:
             if auto_class not in session['auto_register_classes']:
                 session['auto_register_classes'].append(auto_class)
                 
-                # Lưu credentials đ��� dùng sau khi session UI hết h���n
+                # Lưu credentials để dùng sau khi session UI hết hạn
                 self.auto_register_credentials[user_id] = {
                     'username': session['username'],
                     'password': session['password']
                 }
     
     def remove_auto_register_class(self, user_id: int, curriculum_id: str, class_id: str):
-        """X��a lớp khỏi danh sách đăng ký tự động"""
+        """Xóa lớp khỏi danh sách đăng ký tự động"""
         session = self.sessions.get(user_id)
         if session:
             session['auto_register_classes'] = [
@@ -165,22 +165,22 @@ class SessionManager:
                 if not (c['curriculum_id'] == curriculum_id and c['class_id'] == class_id)
             ]
             
-            # N���u không còn l���p nào ch��� đăng ký, xóa credentials
+            # Nếu không còn lớp nào chờ đăng ký, xóa credentials
             if not session['auto_register_classes'] and user_id in self.auto_register_credentials:
                 del self.auto_register_credentials[user_id]
     
     def get_auto_register_classes(self, user_id: int) -> list:
-        """Lấy danh sách l���p đ��ng ký tự động"""
+        """Lấy danh sách lớp đăng ký tự động"""
         session = self.sessions.get(user_id)
         return session['auto_register_classes'] if session else []
     
     def has_auto_register_classes(self, user_id: int) -> bool:
-        """Ki���m tra có l���p chờ đăng ký t��� động không"""
+        """Kiểm tra có lớp chờ đăng ký tự động không"""
         session = self.sessions.get(user_id)
         return bool(session and session['auto_register_classes'])
     
     async def restore_session_from_credentials(self, user_id: int) -> bool:
-        """Khôi phục session từ credentials đã lưu"""
+        """Khôi phục session từ credentials đểã lưu"""
         if user_id not in self.auto_register_credentials:
             return False
         
@@ -192,9 +192,9 @@ class SessionManager:
             return False
     
     def logout(self, user_id: int):
-        """Đăng xuất v�� xóa session"""
+        """Đăng xuất và xóa session"""
         if user_id in self.sessions:
-            # Nếu không có l���p ch��� đăng ký, xóa credentials
+            # Nếu không có lớp chờ đăng ký, xóa credentials
             if not self.sessions[user_id].get('auto_register_classes'):
                 if user_id in self.auto_register_credentials:
                     del self.auto_register_credentials[user_id]
